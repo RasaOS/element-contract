@@ -7,7 +7,7 @@ can pull the contract by URL without canon access.
 
 ## Current version
 
-**Contract v1.0.0** — initial release, 2026-05-22.
+**Contract v1.1.0** — adds `recipe` as the 7th Element kind, 2026-05-22.
 
 See [`ELEMENT_CONTRACT.md`](ELEMENT_CONTRACT.md) for the full text.
 
@@ -16,7 +16,25 @@ See [`ELEMENT_CONTRACT.md`](ELEMENT_CONTRACT.md) for the full text.
 **Pinned to a specific version (recommended for production use):**
 
 ```sh
+# v1.1.0 (latest stable):
+curl -O https://raw.githubusercontent.com/RasaOS/element-contract/v1.1.0/ELEMENT_CONTRACT.md
+
+# v1.0.0 (prior — also valid; v1.1 is backwards-compatible):
 curl -O https://raw.githubusercontent.com/RasaOS/element-contract/v1.0.0/ELEMENT_CONTRACT.md
+```
+
+**Via the helper script** (handles version verification + safer
+write-out than `curl -O`):
+
+```sh
+# Fetch the helper:
+curl -O https://raw.githubusercontent.com/RasaOS/element-contract/main/bin/pull-contract
+chmod +x pull-contract
+
+# Use it:
+./pull-contract v1.1.0                       # latest stable to ./ELEMENT_CONTRACT.md
+./pull-contract v1.0.0 /tmp/contract-v1.md   # specific version + path
+./pull-contract                              # latest (main) to ./ELEMENT_CONTRACT.md
 ```
 
 **Always-latest (for inspection only — never pin to `main`):**
@@ -50,6 +68,7 @@ independently.
 
 | Tag | Released | Summary |
 |---|---|---|
+| `v1.1.0` | 2026-05-22 | Adds `recipe` as the 7th Element kind (canon TASK-122 absorbed). Backwards-compatible — v1.0.0 Elements remain valid. |
 | `v1.0.0` | 2026-05-22 | Initial contract. Six kinds, three name forms, required files, rasa.json schema (required + optional), install policies, vocabulary lock, validation gate, versioning discipline, authoring checklist, public mirror flow. |
 
 ## Publish flow (for canon maintainers only)

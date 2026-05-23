@@ -1,9 +1,18 @@
 # RasaOS Element Contract
 
-**Contract Version:** 1.0.0
+**Contract Version:** 1.1.0
 **Effective:** 2026-05-22
-**Canon Version:** 1.0.0
+**Canon Version:** 1.1.0
 **Status:** Authoritative for every Element repo
+
+## What changed in v1.1.0
+
+Added `recipe` as the 7th Element kind (canon Spec §6, TASK-122
+absorbed). Recipes are now Elements with the same
+install/trust/dependency pipeline as any other Element.
+Backwards-compatible — existing Elements at `contract_version: "1.0.0"`
+remain valid; they MAY upgrade to `contract_version: "1.1.0"` at their
+next commit but are not required to.
 
 > What every Element MUST be, do, and not do. The condensed read.
 > Canon Spec §5–§6 is the spec; this is the contract authors follow.
@@ -24,10 +33,10 @@ number, not relaxed rules.
 
 ---
 
-## §2 — The six valid kinds
+## §2 — The seven valid kinds
 
-Canon Spec §5. The `kind` field in every `rasa.json` is exactly one
-of:
+Canon Spec §6 (v1.1+). The `kind` field in every `rasa.json` is
+exactly one of:
 
 | Kind | Tier | Distribution | What it is |
 |---|---|---|---|
@@ -37,9 +46,10 @@ of:
 | `core` | L1 | Folder | The shared L1 foundation every vertical depends on. |
 | `kernel` | L2 | Image | The execution substrate (`rasa.kernel`). One per deployment. |
 | `frontend` | L4 | Image | Vertical-specific UI surfaces (`rasa.frontend.legalos`, etc.). |
+| `recipe` | L4 | Folder | **(v1.1+)** A composition declaration naming a kernel + frontend + Element list + theme. Resolved by the Gateway at install time to produce a Vertical. Same install/trust/dependency pipeline as any other Element. The composition JSON lives in the Recipe Element's `content/`. Examples: `recipe-legalos`, `recipe-healthos`. |
 
 There is no `skill`, no `vertical`, no `kit`, no `plugin` kind. The
-six above are the entire set.
+seven above are the entire set.
 
 ---
 
@@ -53,10 +63,10 @@ Canon Brand Kit §3. Every Element has three name forms:
 | **Repo / folder** | `<kind>-<name>` (no `rasa-` prefix) | `domain-code` | GitHub repo, local folder |
 | **Display** | "RasaOS \<Kind\> · \<Name\>" | "RasaOS Domain · Code" | Human-facing text, READMEs, marketing |
 
-The dotted logical name MUST match the regex:
+The dotted logical name MUST match the regex (v1.1+):
 
 ```
-^rasa\.(domain|orchestrator|module|core|kernel|frontend)\..+$
+^rasa\.(domain|orchestrator|module|core|kernel|frontend|recipe)\..+$
 ```
 
 …OR be exactly `rasa.core` / `rasa.kernel` (the two singletons).

@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+#
+# pull-contract — fetch the RasaOS Element Contract at a specified version.
+#
+# Usage:
+#   pull-contract [VERSION] [OUTPUT]
+#
+#   VERSION:  Version tag (e.g. "v1.1.0" or "1.1.0") or "latest" (= main branch).
+#             Default: "latest".
+#   OUTPUT:   Path to write the file. Default: "./ELEMENT_CONTRACT.md".
+#
+# Examples:
+#   pull-contract                            # latest from main → ./ELEMENT_CONTRACT.md
+#   pull-contract v1.1.0                     # v1.1.0 → ./ELEMENT_CONTRACT.md
+#   pull-contract v1.0.0 /tmp/contract.md    # v1.0.0 → /tmp/contract.md
+#   pull-contract 1.1.0                      # v1.1.0 (leading "v" optional)
+#
+# What it does:
+#   1. Downloads ELEMENT_CONTRACT.md from raw.githubusercontent.com at the
+#      requested tag (or main for "latest").
+#   2. Sanity-checks the response: HTTP 200, file starts with the expected
+#      title, contains a "Contract Version:" line.
+#   3. If a specific VERSION was requested, verifies the file's
+#      "Contract Version:" matches.
+#   4. Writes atomically to OUTPUT (via mktemp + mv).
+#   5. Prints the version actually fetched and where it landed.
+#
+# Exit codes:
+#   0 — success
+#   1 — bad argument, bad HTTP response, file doesn't look like a contract,
+#       or version mismatch when a specific version was requested
+#
+# Requirements: bash, curl, grep, sed, mv, mktemp.
+
+set -euo pipefail
+
+REPO="RasaOS/element-contract"
+RAW_BASE="https://raw.githubusercontent.com/${REPO}"
+FILENAME="ELEMENT_CONTRACT.md"
+
+VERSION_ARG="${1:-latest}"
+OUTPUT="${2:-./${FILENAME}}"
+
+# ── Resolve the ref (tag or main) ─────────────────────────────────────────
+if [ "$VERSION_ARG" = "latest" ] || [ "$VERSION_ARG" = "main" ]; then
+  REF="main"
+  EXPECTED_VERSION=""  # any
+else
+  # Accept "1.1.0" or "v1.1.0"; normalize to v-prefixed.
+  REF="${VERSION_ARG#v}"
+  EXPECTED_VERSION="$REF"
+  REF="v$REF"
+fi
+
+URL="${RAW_BASE}/${REF}/${FILENAME}"
+
+# ── Fetch ──────────────────────────────────────────────────────────────────
+TMP=$(mktemp -t pull-contract.XXXXXX)
+trap 'rm -f "$TMP"' EXIT
+
+echo "Fetching: $URL"
+HTTP_CODE=$(curl -sS -o "$TMP" -w "%{http_code}" "$URL" || echo "000")
+
+if [ "$HTTP_CODE" != "200" ]; then
+  echo "ERROR: HTTP $HTTP_CODE — could not fetch contract at ref '$REF'" >&2
+  echo "       URL: $URL" >&2
+  exit 1
+fi
+
+# ── Sanity-check the file shape ────────────────────────────────────────────
+if ! head -1 "$TMP" | grep -q "^# RasaOS Element Contract$"; then
+  echo "ERROR: fetched file does not start with the expected contract title." >&2
+  echo "       First line: $(head -1 "$TMP")" >&2
+  exit 1
+fi
+
+FETCHED_VERSION=$(grep -m 1 '^\*\*Contract Version:\*\*' "$TMP" \
+  | sed -E 's/^\*\*Contract Version:\*\*[[:space:]]+//' \
+  | tr -d '[:space:]')
+
+if [ -z "$FETCHED_VERSION" ]; then
+  echo "ERROR: fetched file has no 'Contract Version:' line." >&2
+  exit 1
+fi
+
+# ── Verify version match when a specific version was requested ────────────
+if [ -n "$EXPECTED_VERSION" ] && [ "$EXPECTED_VERSION" != "$FETCHED_VERSION" ]; then
+  echo "ERROR: requested v$EXPECTED_VERSION but file says v$FETCHED_VERSION" >&2
+  echo "       (tag may have been moved, or you typed the wrong version)" >&2
+  exit 1
+fi
+
+# ── Write atomically ──────────────────────────────────────────────────────
+OUTPUT_DIR=$(dirname "$OUTPUT")
+mkdir -p "$OUTPUT_DIR"
+mv "$TMP" "$OUTPUT"
+trap - EXIT  # disable the temp cleanup since we moved the file
+
+echo "OK: Contract v$FETCHED_VERSION → $OUTPUT"
+echo "    (fetched from $URL)"
