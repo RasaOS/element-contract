@@ -15,13 +15,14 @@ Reflects the 10 amendments absorbed in canon v1.2.0 (engines bundle
 - **`provides.default_engine`** (optional string) — Element's preferred
   engine when caller doesn't specify. Must be a member of
   `provides.engines` if both set. (SA-008)
-- **Install postures** — Elements may be installed kernel-wide
-  (`/rasa/modules/<name>/`) or project-embedded
-  (`<cwd>/.rasa/elements/<name>/`). Project-embedded wins on name
-  collision. (SA-015 multi-instance)
+- **Pull postures** — Elements may be pulled into the kernel from a
+  kernel-wide location (`/rasa/modules/<name>/`) or from a
+  project-embedded location (`<cwd>/.rasa/elements/<name>/`).
+  Project-embedded wins on name collision. (SA-015 multi-instance).
+  See §8a for the install-vs-pull vocabulary distinction.
 - **Trust model** — at v1.2 every Element hits the unsigned/TOFU path
-  on install (signing infrastructure ships v2 alongside Phase 9 auth).
-  Operators see one prompt on first install per `(name, url)`; TOFU
+  on pull (signing infrastructure ships v2 alongside Phase 9 auth).
+  Operators see one prompt on first pull per `(name, url)`; TOFU
   persists the decision. (SA-016)
 - **Skill router** — Element skills register under their natural name
   only. The legacy `<skill>.<engine>` suffix pattern is deprecated;
@@ -31,8 +32,18 @@ Reflects the 10 amendments absorbed in canon v1.2.0 (engines bundle
 Backwards-compatible — existing Elements at `contract_version: "1.1.0"`
 or `"1.0.0"` remain valid; they MAY upgrade to `contract_version: "1.2.0"`
 at their next commit but are not required to. Elements wishing to
-declare engine support, opt into multi-instance install postures, or
+declare engine support, opt into multi-instance pull postures, or
 participate in the trust model should bump their declaration.
+
+**Vocabulary note (v1.2 clarification):** the canon now distinguishes
+**install** (Pattern 1: `bin/init` copies an Element's `content/`
+into a consumer's `.claude/` as toolkit source — see §7) from **pull**
+(Pattern 2: the kernel ingests an Element as a mounted runtime
+surface at `/rasa/modules/<name>/`; or Pattern 3: the kernel ingests
+the user's working Project at `/rasa/app/` per the Two-Repo Fusion
+Model in canon doc 05). Both "pull" patterns are kernel-side
+ingestion; both "install" is a copy-into-consumer-source operation.
+See §8a for the full table.
 
 ## What changed in v1.1.0
 
@@ -224,6 +235,38 @@ Adding a new forbidden term is a canon-level event. Existing
 pre-canon Elements (e.g. absorbed kits) get a one-time drift-fix to
 bring them into compliance; they SHOULD NOT ship new commits in the
 legacy shape.
+
+---
+
+## §8a — Install vs Pull (canonical vocabulary)
+
+RasaOS has three distinct external-repo-into-runtime patterns. They
+were historically all called "install"; v1.2 splits the vocabulary so
+docs, error messages, and tooling can be precise:
+
+| Term | Pattern | What happens | Mount / target | Spec ref |
+|---|---|---|---|---|
+| **install** | 1 — Toolkit mirror | An Element's `bin/init` copies content from `Element/content/` and `Element/seed/` into a consumer's `.claude/`, stamping `.claude/rasa.lock.json` with the Element SHA. The Element acts as a *template*; the consumer absorbs it as part of its own source tree. | Consumer's `.claude/` (writable, owned by consumer after install) | This contract §7 (install policies) |
+| **pull (Element)** | 2 — Element runtime ingestion | The kernel acquires an Element either by bind-mount (dev) or by registry-resolve → manifest-fetch → clone (prod, per doc 07 §21 RG-018). The kernel scans `<mount>/<name>/rasa.json` and registers the Element in its in-memory registry; skills become invokable over the bus. | Kernel-wide `/rasa/modules/<name>/` (RO) OR project-embedded `<cwd>/.rasa/elements/<name>/` (per SA-015) | Spec §6 (Connection Contract), doc 07 §21 (pull pipeline), this contract §What-changed-in-v1.2.0 (pull postures) |
+| **pull (Project)** | 3 — Project runtime ingestion | The kernel mounts the user's working application repo at `/rasa/app/`. Kernel sessions run with `cwd =` this directory; skills act on this surface. This is canon's **Two-Repo Fusion Model**. | Kernel `/rasa/app/` (RW) | Doc 05 §1–§8 (Two-Repo Fusion, SA-004) |
+
+**Rules of thumb:**
+- "Install" moves Element content INTO a consumer's source tree.
+  Permanent. The consumer owns the result.
+- "Pull" mounts an external repo INTO the kernel runtime. Ephemeral.
+  The kernel reads, never owns.
+- Same Element folder (`elements/<name>/`) typically participates in
+  BOTH — its `content/` gets installed into consumer toolkits, AND
+  its `rasa.json` declaration gets pulled into the kernel.
+
+**Don't confuse with `rasa install`:** the `rasa` CLI's `install`
+verb (Spec §20) is a high-level customer-facing command. It runs the
+full pull pipeline + may also install the workspace toolkit. The
+verb is named for the user's mental model ("install a vertical");
+the internal mechanics are pull-shaped.
+
+Adding a new pattern is a canon-level event (Spec §6 amendment +
+brand-kit vocabulary entry).
 
 ---
 
