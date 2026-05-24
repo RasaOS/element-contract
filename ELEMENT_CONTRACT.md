@@ -104,13 +104,24 @@ Canon Brand Kit §3. Every Element has three name forms:
 | **Repo / folder** | `<kind>-<name>` (no `rasa-` prefix for first-party) | `domain-code`, `rasa-tenant` (the canon-author workspace tenant, exception to the no-prefix rule since "tenant" alone is ambiguous) | GitHub repo, local folder |
 | **Display** | "RasaOS \<Kind\> · \<Name\>" | "RasaOS Domain · Code", "RasaOS Tenant · Workspace" | Human-facing text, READMEs, marketing |
 
-The dotted logical name MUST match the regex (v1.1+):
+The dotted logical name MUST match the regex (v1.3+):
 
 ```
-^rasa\.(domain|orchestrator|module|core|kernel|frontend|recipe)\..+$
+^rasa\.(domain|orchestrator|module|core|kernel|frontend|recipe|tenant)\..+$
 ```
 
 …OR be exactly `rasa.core` / `rasa.kernel` (the two singletons).
+
+Tenant-kind Elements (v1.3+) MAY ALSO use a publisher-prefixed form,
+since tenants are usually customer-owned, not Raico-published:
+
+```
+^[a-z][a-z0-9-]*\.tenant\..+$
+```
+
+Example: `com.anders-law.tenant.firm`. First-party canon-author tenants
+use the `rasa.tenant.<id>` form (rare — only the canon-author workspace
+tenant `rasa.tenant.rasaos`).
 
 ---
 
