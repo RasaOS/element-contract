@@ -1,9 +1,38 @@
 # RasaOS Element Contract
 
-**Contract Version:** 1.1.0
-**Effective:** 2026-05-22
-**Canon Version:** 1.1.0
+**Contract Version:** 1.2.0
+**Effective:** 2026-05-23
+**Canon Version:** 1.2.0 (PENDING REVIEW — see canon CHANGELOG)
 **Status:** Authoritative for every Element repo
+
+## What changed in v1.2.0
+
+Reflects the 10 amendments absorbed in canon v1.2.0 (engines bundle
++ Element distribution + RasaConsole repositioning):
+
+- **`provides.engines`** (optional array of strings) — declares which
+  engines this Element supports. Absence = engine-agnostic. (SA-008)
+- **`provides.default_engine`** (optional string) — Element's preferred
+  engine when caller doesn't specify. Must be a member of
+  `provides.engines` if both set. (SA-008)
+- **Install postures** — Elements may be installed kernel-wide
+  (`/rasa/modules/<name>/`) or project-embedded
+  (`<cwd>/.rasa/elements/<name>/`). Project-embedded wins on name
+  collision. (SA-015 multi-instance)
+- **Trust model** — at v1.2 every Element hits the unsigned/TOFU path
+  on install (signing infrastructure ships v2 alongside Phase 9 auth).
+  Operators see one prompt on first install per `(name, url)`; TOFU
+  persists the decision. (SA-016)
+- **Skill router** — Element skills register under their natural name
+  only. The legacy `<skill>.<engine>` suffix pattern is deprecated;
+  shim accepts it through v2.0 with a `deprecation_warnings` signal
+  on the result. (SA-010)
+
+Backwards-compatible — existing Elements at `contract_version: "1.1.0"`
+or `"1.0.0"` remain valid; they MAY upgrade to `contract_version: "1.2.0"`
+at their next commit but are not required to. Elements wishing to
+declare engine support, opt into multi-instance install postures, or
+participate in the trust model should bump their declaration.
 
 ## What changed in v1.1.0
 
@@ -154,6 +183,8 @@ coordinated drift-fix sweep across the workspace.
 | `scaffold.directories` | array of strings | Empty directories created at install with a `.gitkeep`. |
 | `element.files` | array of objects | Files mirrored into install targets. Each entry declares `from`, `to`, `policy`. |
 | `seed.files` | array of objects | One-time templates. Same shape as `element.files` but with one-shot policies. |
+| `provides.engines` | array of strings | **(v1.2+)** Engine names this Element supports (e.g. `["claude", "codex"]`). Absence means engine-agnostic (any kernel-supported engine accepted). (SA-008) |
+| `provides.default_engine` | string | **(v1.2+)** Element's declared default engine when caller doesn't specify. If present, MUST be a member of `provides.engines`. Drives SA-009 resolution chain rung 2. |
 
 ---
 
