@@ -1,9 +1,46 @@
 # RasaOS Element Contract
 
-**Contract Version:** 1.2.0
-**Effective:** 2026-05-23
-**Canon Version:** 1.2.0 (PENDING REVIEW — see canon CHANGELOG)
+**Contract Version:** 1.3.0
+**Effective:** 2026-05-24
+**Canon Version:** 1.3.0 (IN PROGRESS — see canon CHANGELOG)
 **Status:** Authoritative for every Element repo
+
+## What changed in v1.3.0
+
+Reflects two amendments absorbed in canon v1.3.0:
+
+- **SA-018 — `tenant` is the 8th Element kind.** Adds `tenant` to
+  the `ElementKindSchema` enum. Tenants are deployment-level
+  Elements holding the user's working data; declare composition via
+  `requires.elements[]`; mount at `/rasa/app/` per Two-Repo Fusion
+  (doc 05 SA-004). Customer-owned data; canon ships the kind, not
+  the content. Dual naming form: `rasa.tenant.<id>` (first-party,
+  rare) vs `<publisher>.tenant.<id>` (customer-owned, typical). See
+  Spec Part X §52 + ELEMENT_CONTRACT §2.
+- **SA-019 — Working-copy holding folder + promote sync.** Every
+  pulled domain Element in a customer tenant gets TWO paths: visible
+  at `<cwd>/elements/<name>/` (user-facing, committed to tenant git)
+  and holding at `<cwd>/.rasa/holding/<name>/` (substrate-internal,
+  gitignored). Sync flow = pull holding → diff vs visible →
+  user-driven promote of selected changes into visible. Amends
+  SA-015 MI-002's project-embedded path (drops the hidden `.rasa/`
+  prefix on the visible side; the new path is `<cwd>/elements/`).
+  New vocabulary: **holding folder**, **promote** (verb), **smart
+  merge** / **smart sync**. See Spec Part X §53 + doc 05 §Smart-Merge
+  Sync + ELEMENT_CONTRACT §8a (updated).
+
+Backwards-compatible — existing Elements at `contract_version:
+"1.2.0"`, `"1.1.0"`, or `"1.0.0"` remain valid. Only tenant-kind
+Elements need to declare `contract_version: "1.3.0"`. Other Elements
+MAY upgrade their declaration but aren't required to.
+
+**Path supersession note (SA-019 WC-005):** SA-015 v1.2.0 documented
+the project-embedded posture path as `<cwd>/.rasa/elements/<name>/`.
+SA-019 supersedes this to `<cwd>/elements/<name>/` (visible, not
+hidden). The `.rasa/` hidden prefix is now reserved for
+substrate-internal state (holding folders, lockfile caches). Other
+SA-015 locks (union semantics, project-wins, scope-routing) hold
+unchanged.
 
 ## What changed in v1.2.0
 
@@ -17,9 +54,11 @@ Reflects the 10 amendments absorbed in canon v1.2.0 (engines bundle
   `provides.engines` if both set. (SA-008)
 - **Pull postures** — Elements may be pulled into the kernel from a
   kernel-wide location (`/rasa/modules/<name>/`) or from a
-  project-embedded location (`<cwd>/.rasa/elements/<name>/`).
-  Project-embedded wins on name collision. (SA-015 multi-instance).
-  See §8a for the install-vs-pull vocabulary distinction.
+  project-embedded location (`<cwd>/.rasa/elements/<name>/` per
+  v1.2; superseded to `<cwd>/elements/<name>/` per SA-019 WC-005
+  in v1.3). Project-embedded wins on name collision. (SA-015
+  multi-instance). See §8a for the install-vs-pull vocabulary
+  distinction.
 - **Trust model** — at v1.2 every Element hits the unsigned/TOFU path
   on pull (signing infrastructure ships v2 alongside Phase 9 auth).
   Operators see one prompt on first pull per `(name, url)`; TOFU
@@ -259,7 +298,7 @@ docs, error messages, and tooling can be precise:
 | Term | Pattern | What happens | Mount / target | Spec ref |
 |---|---|---|---|---|
 | **install** | 1 — Toolkit mirror | An Element's `bin/init` copies content from `Element/content/` and `Element/seed/` into a consumer's `.claude/`, stamping `.claude/rasa.lock.json` with the Element SHA. The Element acts as a *template*; the consumer absorbs it as part of its own source tree. | Consumer's `.claude/` (writable, owned by consumer after install) | This contract §7 (install policies) |
-| **pull (Element)** | 2 — Element runtime ingestion | The kernel acquires an Element either by bind-mount (dev) or by registry-resolve → manifest-fetch → clone (prod, per doc 07 §21 RG-018). The kernel scans `<mount>/<name>/rasa.json` and registers the Element in its in-memory registry; skills become invokable over the bus. | Kernel-wide `/rasa/modules/<name>/` (RO) OR project-embedded `<cwd>/.rasa/elements/<name>/` (per SA-015) | Spec §6 (Connection Contract), doc 07 §21 (pull pipeline), this contract §What-changed-in-v1.2.0 (pull postures) |
+| **pull (Element)** | 2 — Element runtime ingestion | The kernel acquires an Element either by bind-mount (dev) or by registry-resolve → manifest-fetch → clone (prod, per doc 07 §21 RG-018). The kernel scans `<mount>/<name>/rasa.json` and registers the Element in its in-memory registry; skills become invokable over the bus. In customer tenants, the visible Element copy is paired with a hidden working copy at `<cwd>/.rasa/holding/<name>/` for smart-merge sync per SA-019. | Kernel-wide `/rasa/modules/<name>/` (RO) OR project-embedded `<cwd>/elements/<name>/` (per SA-015 + SA-019 WC-005; was `<cwd>/.rasa/elements/<name>/` pre-v1.3) | Spec §6 (Connection Contract), doc 07 §21 (pull pipeline), Spec §50 + §53 (pull postures + holding-folder sync) |
 | **pull (Tenant)** | 3 — Tenant runtime ingestion | The kernel mounts the user's tenant Element (the deployment-level repo holding their working data) at `/rasa/app/`. Kernel sessions run with `cwd =` this directory; skills act on this surface. The tenant Element declares the deployment's full composition via `requires.elements[]` (TN-003). This is canon's **Two-Repo Fusion Model**. | Kernel `/rasa/app/` (RW) | Doc 05 §1–§8 (Two-Repo Fusion, SA-004); SA-018 (TN-001..TN-004 v1.3) |
 
 **Rules of thumb:**
@@ -273,8 +312,16 @@ docs, error messages, and tooling can be precise:
 - Pattern 3 "pull (Tenant)" is special: the tenant is the **deployment
   entry-point** — kernel mounts it at `/rasa/app/`, then resolves the
   tenant's `requires.elements[]` and pulls each via Pattern 2 into
-  `/rasa/modules/<name>/` (kernel-wide) or `<cwd>/.rasa/elements/<name>/`
-  (project-embedded). The tenant pull triggers the cascade.
+  `/rasa/modules/<name>/` (kernel-wide) or `<cwd>/elements/<name>/`
+  (project-embedded per SA-015 + SA-019 WC-005). The tenant pull
+  triggers the cascade.
+- For customer tenants, every Pattern 2 project-embedded Element also
+  gets a hidden working copy at `<cwd>/.rasa/holding/<name>/` for
+  smart-merge sync (SA-019 WC-001..WC-003): pull holding from
+  upstream → diff vs visible → user-driven promote of selected
+  changes into visible. The verb **promote** moves changes from
+  holding → visible; user-driven, never automatic (WC-004). See
+  doc 05 §Smart-Merge Sync + Spec Part X §53 for the full flow.
 
 **Don't confuse with `rasa install`:** the `rasa` CLI's `install`
 verb (Spec §20) is a high-level customer-facing command. It runs the
