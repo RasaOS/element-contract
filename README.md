@@ -1,9 +1,9 @@
 # RasaOS Element Contract
 
 Public mirror of the authoritative contract every RasaOS Element repo
-must follow. The source of truth lives in the (private) RasaOS canon
-at `canon/ELEMENT_CONTRACT.md`; this repo exists so Element authors
-can pull the contract by URL without canon access.
+must follow. The source of truth lives in the (private) RasaOS canon at
+`canon/v<version>/elements/ELEMENT_CONTRACT.md`; this repo exists so
+Element authors can pull the contract by URL without canon access.
 
 ## Current version
 
@@ -75,10 +75,11 @@ independently.
 
 When the contract bumps in canon:
 
-1. Author the change in `~/rAI/rasa-os/canon/ELEMENT_CONTRACT.md`,
+1. Author the change in the current working canon version's
+   elements folder: `~/rAI/rasa-os/canon/v<version>/elements/ELEMENT_CONTRACT.md`,
    bumping the `Contract Version` line.
-2. Append a `canon/CHANGELOG.md` entry.
-3. Copy the updated file here: `cp ../canon/ELEMENT_CONTRACT.md
+2. Append a `canon/v<version>/canon/CHANGELOG.md` entry.
+3. Copy the updated file here: `cp ../canon/v<version>/elements/ELEMENT_CONTRACT.md
    ./ELEMENT_CONTRACT.md`.
 4. Update this README's "Current version" and Versions table.
 5. Commit with message `Contract vX.Y.Z — <one-line-summary>`.
