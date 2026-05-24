@@ -7,7 +7,7 @@ Element authors can pull the contract by URL without canon access.
 
 ## Current version
 
-**Contract v1.2.0** — reflects 10 amendments absorbed in canon v1.2.0 (engines bundle + Element distribution + RasaConsole repositioning), 2026-05-23. Adds `provides.engines` + `provides.default_engine` optional rasa.json fields, notes install postures + trust model + skill router suffix deprecation.
+**Contract v1.3.0** — adds `tenant` as the 8th Element kind (SA-018 absorbed into canon v1.3.0), 2026-05-24. Eight kinds total: `domain | orchestrator | module | core | kernel | frontend | recipe | tenant`. Tenants are deployment-level Elements holding the user's working data; mount at `/rasa/app/` per Two-Repo Fusion; declare composition via `requires.elements[]`. Customer-owned data; canon ships the kind, not the content. See §2 + §What-changed-v1.3.0 in the contract.
 
 See [`ELEMENT_CONTRACT.md`](ELEMENT_CONTRACT.md) for the full text.
 
@@ -16,10 +16,13 @@ See [`ELEMENT_CONTRACT.md`](ELEMENT_CONTRACT.md) for the full text.
 **Pinned to a specific version (recommended for production use):**
 
 ```sh
-# v1.2.0 (latest stable):
+# v1.3.0 (latest stable):
+curl -O https://raw.githubusercontent.com/RasaOS/element-contract/v1.3.0/ELEMENT_CONTRACT.md
+
+# v1.2.0 (prior — also valid; v1.3 is backwards-compatible):
 curl -O https://raw.githubusercontent.com/RasaOS/element-contract/v1.2.0/ELEMENT_CONTRACT.md
 
-# v1.1.0 (prior — also valid; v1.2 is backwards-compatible):
+# v1.1.0 (prior — also valid):
 curl -O https://raw.githubusercontent.com/RasaOS/element-contract/v1.1.0/ELEMENT_CONTRACT.md
 
 # v1.0.0 (prior — also valid):
@@ -35,8 +38,8 @@ curl -O https://raw.githubusercontent.com/RasaOS/element-contract/main/bin/pull-
 chmod +x pull-contract
 
 # Use it:
-./pull-contract v1.2.0                       # latest stable to ./ELEMENT_CONTRACT.md
-./pull-contract v1.1.0 /tmp/contract-v1.1.md # specific version + path
+./pull-contract v1.3.0                       # latest stable to ./ELEMENT_CONTRACT.md
+./pull-contract v1.2.0 /tmp/contract-v1.2.md # specific version + path
 ./pull-contract                              # latest (main) to ./ELEMENT_CONTRACT.md
 ```
 
@@ -71,7 +74,8 @@ independently.
 
 | Tag | Released | Summary |
 |---|---|---|
-| `v1.2.0` | 2026-05-23 | Reflects 10 absorbed canon v1.2.0 amendments (engines bundle + Element distribution + RasaConsole repositioning). Adds `provides.engines` + `provides.default_engine` optional rasa.json fields; notes install postures (multi-instance Element model), trust model (TOFU + warn-and-confirm), skill router suffix deprecation. Backwards-compatible — v1.1.0 + v1.0.0 Elements remain valid. |
+| `v1.3.0` | 2026-05-24 | Adds `tenant` as the 8th Element kind (canon SA-018 absorbed). Eight kinds total: domain, orchestrator, module, core, kernel, frontend, recipe, tenant. Tenants are deployment-level Elements holding the user's working data; mount at `/rasa/app/` per Two-Repo Fusion; declare composition via `requires.elements[]`. Dual-form naming for tenants (`rasa.tenant.*` first-party rare, `<publisher>.tenant.*` customer typical). §8a Pattern 3 renamed pull(Project)→pull(Tenant). Backwards-compatible — v1.2.0 / v1.1.0 / v1.0.0 Elements remain valid. |
+| `v1.2.0` | 2026-05-23 | Reflects 10 absorbed canon v1.2.0 amendments (engines bundle + Element distribution + RasaConsole repositioning). Adds `provides.engines` + `provides.default_engine` optional rasa.json fields; notes install postures (multi-instance Element model), trust model (TOFU + warn-and-confirm), skill router suffix deprecation. Plus in-place install-vs-pull vocabulary lock (§8a + Brand Kit §XI). Backwards-compatible — v1.1.0 + v1.0.0 Elements remain valid. |
 | `v1.1.0` | 2026-05-22 | Adds `recipe` as the 7th Element kind (canon TASK-122 absorbed). Backwards-compatible — v1.0.0 Elements remain valid. |
 | `v1.0.0` | 2026-05-22 | Initial contract. Six kinds, three name forms, required files, rasa.json schema (required + optional), install policies, vocabulary lock, validation gate, versioning discipline, authoring checklist, public mirror flow. |
 

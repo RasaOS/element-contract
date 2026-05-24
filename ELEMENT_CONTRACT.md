@@ -73,9 +73,9 @@ number, not relaxed rules.
 
 ---
 
-## §2 — The seven valid kinds
+## §2 — The eight valid kinds
 
-Canon Spec §6 (v1.1+). The `kind` field in every `rasa.json` is
+Canon Spec §6 (v1.3+). The `kind` field in every `rasa.json` is
 exactly one of:
 
 | Kind | Tier | Distribution | What it is |
@@ -86,10 +86,11 @@ exactly one of:
 | `core` | L1 | Folder | The shared L1 foundation every vertical depends on. |
 | `kernel` | L2 | Image | The execution substrate (`rasa.kernel`). One per deployment. |
 | `frontend` | L4 | Image | Vertical-specific UI surfaces (`rasa.frontend.legalos`, etc.). |
-| `recipe` | L4 | Folder | **(v1.1+)** A composition declaration naming a kernel + frontend + Element list + theme. Resolved by the Gateway at install time to produce a Vertical. Same install/trust/dependency pipeline as any other Element. The composition JSON lives in the Recipe Element's `content/`. Examples: `recipe-legalos`, `recipe-healthos`. |
+| `recipe` | L4 | Folder | **(v1.1+)** A composition declaration naming a kernel + frontend + Element list + theme. Resolved by the Gateway at install time to produce a Vertical. Same pull/trust/dependency pipeline as any other Element. The composition JSON lives in the Recipe Element's `content/`. Examples: `recipe-legalos`, `recipe-healthos`. |
+| `tenant` | L4 | Folder | **(v1.3+)** A deployment-level Element. Holds the user's working data; declares which other Elements get pulled into the deployment via `requires.elements[]`. Mounts at `/rasa/app/` per Two-Repo Fusion (doc 05 SA-004). Customer-owned data; canon ships the kind, not the content. Typically has no `content/` or `seed/` — pure deployment surface. Examples: `rasa.tenant.rasaos` (the canon-author workspace tenant), `com.anders-law.tenant.firm` (a law firm's LegalOS tenant). |
 
-There is no `skill`, no `vertical`, no `kit`, no `plugin` kind. The
-seven above are the entire set.
+There is no `skill`, no `vertical`, no `kit`, no `plugin`, no
+`project-repo` kind. The eight above are the entire set.
 
 ---
 
@@ -99,9 +100,9 @@ Canon Brand Kit §3. Every Element has three name forms:
 
 | Form | Pattern | Example | Used in |
 |---|---|---|---|
-| **Dotted logical** | `rasa.<kind>.<name>` | `rasa.domain.code` | `rasa.json#name`, all config refs |
-| **Repo / folder** | `<kind>-<name>` (no `rasa-` prefix) | `domain-code` | GitHub repo, local folder |
-| **Display** | "RasaOS \<Kind\> · \<Name\>" | "RasaOS Domain · Code" | Human-facing text, READMEs, marketing |
+| **Dotted logical** | `rasa.<kind>.<name>` (first-party) OR `<publisher>.<kind>.<name>` for `tenant` kind (customer-owned, v1.3+) | `rasa.domain.code`, `com.anders-law.tenant.firm` | `rasa.json#name`, all config refs |
+| **Repo / folder** | `<kind>-<name>` (no `rasa-` prefix for first-party) | `domain-code`, `rasa-tenant` (the canon-author workspace tenant, exception to the no-prefix rule since "tenant" alone is ambiguous) | GitHub repo, local folder |
+| **Display** | "RasaOS \<Kind\> · \<Name\>" | "RasaOS Domain · Code", "RasaOS Tenant · Workspace" | Human-facing text, READMEs, marketing |
 
 The dotted logical name MUST match the regex (v1.1+):
 
@@ -248,7 +249,7 @@ docs, error messages, and tooling can be precise:
 |---|---|---|---|---|
 | **install** | 1 — Toolkit mirror | An Element's `bin/init` copies content from `Element/content/` and `Element/seed/` into a consumer's `.claude/`, stamping `.claude/rasa.lock.json` with the Element SHA. The Element acts as a *template*; the consumer absorbs it as part of its own source tree. | Consumer's `.claude/` (writable, owned by consumer after install) | This contract §7 (install policies) |
 | **pull (Element)** | 2 — Element runtime ingestion | The kernel acquires an Element either by bind-mount (dev) or by registry-resolve → manifest-fetch → clone (prod, per doc 07 §21 RG-018). The kernel scans `<mount>/<name>/rasa.json` and registers the Element in its in-memory registry; skills become invokable over the bus. | Kernel-wide `/rasa/modules/<name>/` (RO) OR project-embedded `<cwd>/.rasa/elements/<name>/` (per SA-015) | Spec §6 (Connection Contract), doc 07 §21 (pull pipeline), this contract §What-changed-in-v1.2.0 (pull postures) |
-| **pull (Project)** | 3 — Project runtime ingestion | The kernel mounts the user's working application repo at `/rasa/app/`. Kernel sessions run with `cwd =` this directory; skills act on this surface. This is canon's **Two-Repo Fusion Model**. | Kernel `/rasa/app/` (RW) | Doc 05 §1–§8 (Two-Repo Fusion, SA-004) |
+| **pull (Tenant)** | 3 — Tenant runtime ingestion | The kernel mounts the user's tenant Element (the deployment-level repo holding their working data) at `/rasa/app/`. Kernel sessions run with `cwd =` this directory; skills act on this surface. The tenant Element declares the deployment's full composition via `requires.elements[]` (TN-003). This is canon's **Two-Repo Fusion Model**. | Kernel `/rasa/app/` (RW) | Doc 05 §1–§8 (Two-Repo Fusion, SA-004); SA-018 (TN-001..TN-004 v1.3) |
 
 **Rules of thumb:**
 - "Install" moves Element content INTO a consumer's source tree.
@@ -258,6 +259,11 @@ docs, error messages, and tooling can be precise:
 - Same Element folder (`elements/<name>/`) typically participates in
   BOTH — its `content/` gets installed into consumer toolkits, AND
   its `rasa.json` declaration gets pulled into the kernel.
+- Pattern 3 "pull (Tenant)" is special: the tenant is the **deployment
+  entry-point** — kernel mounts it at `/rasa/app/`, then resolves the
+  tenant's `requires.elements[]` and pulls each via Pattern 2 into
+  `/rasa/modules/<name>/` (kernel-wide) or `<cwd>/.rasa/elements/<name>/`
+  (project-embedded). The tenant pull triggers the cascade.
 
 **Don't confuse with `rasa install`:** the `rasa` CLI's `install`
 verb (Spec §20) is a high-level customer-facing command. It runs the
